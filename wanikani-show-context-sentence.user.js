@@ -9,7 +9,7 @@
 // ==/UserScript==
 
 if (!window.wkof) {
-    alert('[Your script name here] script requires Wanikani Open Framework.\nYou will now be forwarded to installation instructions.');
+    alert('The show context sentence script requires Wanikani Open Framework.\nYou will now be forwarded to installation instructions.');
     window.location.href = 'https://community.wanikani.com/t/instructions-installing-wanikani-open-framework/28549';
     return;
 }

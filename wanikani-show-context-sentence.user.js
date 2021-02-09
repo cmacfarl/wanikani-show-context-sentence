@@ -38,6 +38,8 @@ function process_items()
       } else {
         sentence = "";
       }
+    } else {
+      sentence = "";
     }
 
     sentenceNode.innerHTML = '<span>' + sentence + '</span>';

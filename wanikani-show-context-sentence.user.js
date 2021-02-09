@@ -3,7 +3,7 @@
 // @namespace   skatefriday
 // @match       https://www.wanikani.com/review/session
 // @grant       none
-// @version     1.0
+// @version     1.0.1
 // @author      skatefriday
 // @description Show context sentence on review page.
 // ==/UserScript==

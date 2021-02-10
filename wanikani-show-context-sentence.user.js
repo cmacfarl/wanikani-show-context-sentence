@@ -3,7 +3,7 @@
 // @namespace   skatefriday
 // @match       https://www.wanikani.com/review/session
 // @grant       none
-// @version     1.0.1
+// @version     1.0.2
 // @license     Apache, https://www.apache.org/licenses/LICENSE-2.0
 // @author      skatefriday
 // @description Show context sentence on review page.

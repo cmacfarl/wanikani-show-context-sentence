@@ -9,6 +9,8 @@
 // @description Show context sentence on review page.
 // ==/UserScript==
 
+(function() {
+
 if (!window.wkof) {
     alert('The show context sentence script requires Wanikani Open Framework.\nYou will now be forwarded to installation instructions.');
     window.location.href = 'https://community.wanikani.com/t/instructions-installing-wanikani-open-framework/28549';
@@ -126,3 +128,4 @@ observeDOM(observeMe, function()
   }
 });
 
+})();

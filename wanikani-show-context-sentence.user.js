@@ -1,82 +1,71 @@
 // ==UserScript==
 // @name        WaniKani Show Context Sentence
 // @namespace   skatefriday
-// @match       https://www.wanikani.com/review/session
+// @match       https://www.wanikani.com/subjects/review
+// @require     https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js
 // @grant       none
-// @version     1.0.2
+// @version     1.1
 // @license     Apache, https://www.apache.org/licenses/LICENSE-2.0
 // @author      skatefriday
 // @description Show context sentence on review page.
 // ==/UserScript==
 
 (function() {
-
+  
 if (!window.wkof) {
     alert('The show context sentence script requires Wanikani Open Framework.\nYou will now be forwarded to installation instructions.');
     window.location.href = 'https://community.wanikani.com/t/instructions-installing-wanikani-open-framework/28549';
     return;
 }
 
-var currItem = null;
+var currSubject = null;
 var sentence = "";
 var sentenceNode = null;
 var wk_items = null;
 
-function process_items()
+function get_new_sentence()
 {
-    if (wk_items == null || (currItem && typeof(currItem) === "undefined")) {
+    if (wk_items == null) {
       return;
     }
 
-    let type_index = wkof.ItemData.get_index(wk_items, 'item_type');
-    if (typeof(currItem.voc) !== "undefined") {
-      let voc = type_index['vocabulary'];
-      let voc_by_name = wkof.ItemData.get_index(voc, 'slug');
-      sentence = voc_by_name[currItem.voc].data.context_sentences[0].ja;
-    } else if (typeof(currItem.kan) !== "undefined") {
-      let kan = type_index['kanji'];
-      let kan_by_name = wkof.ItemData.get_index(kan, 'slug');
-      if (typeof(kan_by_name[currItem.kan]).data.context_sentences !== "undefined") {
-        sentence = kan_by_name[currItem.kan].data.context_sentences[0].ja;
-      } else {
-        sentence = "";
-      }
+    if (currSubject.type === "Vocabulary") {
+      let id_index = wkof.ItemData.get_index(wk_items, 'subject_id');
+      let item = id_index[currSubject.id]
+      sentence = item.data.context_sentences[0].ja;
     } else {
-      sentence = "";
+      sentence = ""
     }
-
+  
     sentenceNode.innerHTML = '<span>' + sentence + '</span>';
 }
 
-// Code from Stack Overflow to detect changes in the DOM.
-// (http://stackoverflow.com/questions/3219758/detect-changes-in-the-dom/14570614#14570614)
-var observeDOM = (function()
-{
-    var MutationObserver = window.MutationObserver || window.WebKitMutationObserver || window.MozMutationObserver,
-        eventListenerSupported = window.addEventListener;
+window.addEventListener(`willShowNextQuestion`, e => {
+	console.log(e.detail);
+  currSubject = e.detail.subject;
+  get_new_sentence();
+});
 
-    return function(obj, callback) {
-        if (MutationObserver) {
-            // define a new observer
-            var obs = new MutationObserver(function(mutations, observer){
-                if( mutations[0].addedNodes.length || mutations[0].removedNodes.length )
-                    callback();
-            });
-            // have the observer observe for changes in children
-            obs.observe( obj, { childList:true, subtree:true });
-        }
-        else if( eventListenerSupported ){
-            obj.addEventListener('DOMNodeInserted', callback, false);
-            obj.addEventListener('DOMNodeRemoved', callback, false);
+var config = {
+    wk_items: {
+        options: {
+            study_materials: true
         }
     }
-})();
+};
 
+//
+// Note that this async operation is slower than the willShowNextQuestion above.
+// Which is why we cache the current subject as a global in the event handler.  
+// Otherwise the first item, if vocabulary, will have no sentence.
+//
 function fetch_items()
 {
-    wkof.ItemData.get_items()
+    wkof.ItemData.get_items(config)
         .then((items) => { wk_items = items; })
-        .then(process_items);
+        .then(get_new_sentence);
+    
+    console.log("Fetched the items")
 }
 
 function startup_wkof()
@@ -95,37 +84,18 @@ function install_context_sentence_css()
     $('head').append('<style>'+ context_sentence_css +'</style>');
 }
 
-// Callback function observing the 'question-type' div 'h1' element
-var observeMe = $('#question-type h1')[0];
-
 $(document).ready(function()
 {
   parent =
   sentenceNode = document.createElement('div');
   // sentenceNode.setAttribute('style', 'font-family: \'Sawarabi Mincho\', serif;');
   sentenceNode.setAttribute('class', 'wf-sawarabimincho');
+  sentenceNode.setAttribute('style', 'text-align:center')
   sentenceNode.innerHTML = '<span>' + sentence + '</span>';
-  $(document.getElementById("question").insertBefore(sentenceNode, document.getElementById("question-type")));
+  $(document.getElementsByClassName('quiz')[0].insertBefore(sentenceNode, document.getElementsByClassName('quiz-input')[0]));
   startup_wkof();
   install_context_sentence_css();
   console.log( "ready!" );
 });
-
-function get_new_sentence(item)
-{
-    process_items(wk_items);
-}
-            
-observeDOM(observeMe, function()
-{
-  var objCurItem = $.jStorage.get("currentItem");
-
-  // Make sure that the currentItem has changed before updating.
-  // Otherwise you will respond to your own DOM changes.
-  if (objCurItem !== currItem) {
-    currItem = objCurItem;
-    get_new_sentence();
-  }
-});
-
+          
 })();

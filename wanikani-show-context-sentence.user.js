@@ -92,7 +92,7 @@ $(document).ready(function()
   sentenceNode.setAttribute('class', 'wf-sawarabimincho');
   sentenceNode.setAttribute('style', 'text-align:center')
   sentenceNode.innerHTML = '<span>' + sentence + '</span>';
-  $(document.getElementsByClassName('quiz')[0].insertBefore(sentenceNode, document.getElementsByClassName('quiz-input')[0]));
+  $(document.getElementsByClassName('quiz__content')[0].insertBefore(sentenceNode, document.getElementsByClassName('quiz-input')[0]));
   startup_wkof();
   install_context_sentence_css();
   console.log( "ready!" );

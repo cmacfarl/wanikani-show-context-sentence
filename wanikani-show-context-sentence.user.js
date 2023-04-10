@@ -4,7 +4,7 @@
 // @match       https://www.wanikani.com/subjects/review
 // @require     https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js
 // @grant       none
-// @version     1.1
+// @version     1.1.1
 // @license     Apache, https://www.apache.org/licenses/LICENSE-2.0
 // @author      skatefriday
 // @description Show context sentence on review page.

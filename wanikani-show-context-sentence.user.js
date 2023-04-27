@@ -2,9 +2,10 @@
 // @name        WaniKani Show Context Sentence
 // @namespace   skatefriday
 // @match       https://www.wanikani.com/subjects/review
+// @match       https://www.wanikani.com/subjects/extra_study*
 // @require     https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js
 // @grant       none
-// @version     1.1.1
+// @version     1.1.2
 // @license     Apache, https://www.apache.org/licenses/LICENSE-2.0
 // @author      skatefriday
 // @description Show context sentence on review page.
@@ -32,7 +33,7 @@ function get_new_sentence()
     if (currSubject.type === "Vocabulary") {
       let id_index = wkof.ItemData.get_index(wk_items, 'subject_id');
       let item = id_index[currSubject.id]
-      sentence = item.data.context_sentences[0].ja;
+      sentence = item.data.context_sentences[0]?.ja || '';
     } else {
       sentence = ""
     }

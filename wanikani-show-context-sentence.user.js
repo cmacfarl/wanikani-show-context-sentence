@@ -21,8 +21,43 @@ if (!window.wkof) {
 
 var currSubject = null;
 var sentence = "";
+var translation = "";
 var sentenceNode = null;
 var wk_items = null;
+var translationVisible = false;
+
+function hideTranslation(hide, node) {
+    if (!node && sentenceNode)
+      node = sentenceNode.querySelector('span + span');
+
+    if (node) node.style.backgroundColor = hide ? 'white' : '#a100f1';
+}
+
+function format_sentence(sentence, characters) {
+    if (!characters)
+        return sentence;
+
+    const highlightElement = '<span style="font-weight: bold;">$1</span>';
+
+    // highlight characters in the sentence
+    const regex = new RegExp(`(${characters})`, 'g');
+    let formattedSentence = sentence.replace(regex, highlightElement);
+
+    // if not change
+    if (formattedSentence === sentence) {
+        // remove all kana characters and only keep kanji from characters
+        const kanaRegex = /[ぁ-ゖ]/g;
+        const kanjiOnly = characters.replace(kanaRegex, '');
+        formattedSentence = sentence.replaceAll(new RegExp(`(${kanjiOnly})`, 'g'), highlightElement);
+    }
+
+    return formattedSentence;
+}
+
+function get_random_sentence_index(sentences) {
+    const max = sentences.length;
+    return Math.floor(Math.random() * max);
+}
 
 function get_new_sentence()
 {
@@ -31,20 +66,52 @@ function get_new_sentence()
     }
 
     if (currSubject.type === "Vocabulary") {
+      sentenceNode.style.display = 'flex';
+
       let id_index = wkof.ItemData.get_index(wk_items, 'subject_id');
       let item = id_index[currSubject.id]
-      sentence = item.data.context_sentences[0]?.ja || '';
+      let random_index = get_random_sentence_index(item.data.context_sentences);
+
+      sentence = item.data.context_sentences[random_index]?.ja || '';
+      translation = item.data.context_sentences[random_index]?.en || '';
+      
+      if (sentence)
+        sentence = format_sentence(sentence, item.data.characters);
+      
     } else {
       sentence = ""
+      translation = "";
+      sentenceNode.style.display = 'none';
     }
   
-    sentenceNode.innerHTML = '<span>' + sentence + '</span>';
+    sentenceNode.querySelector('span').innerHTML = sentence;
+    sentenceNode.querySelector('span + span').innerHTML = translation;
+
+    hideTranslation(true, sentenceNode.querySelector('span + span'));
+    translationVisible = false;
 }
 
 window.addEventListener(`willShowNextQuestion`, e => {
 	console.log(e.detail);
   currSubject = e.detail.subject;
   get_new_sentence();
+});
+
+window.addEventListener(`didAnswerQuestion`, e => {
+  const questionType = e.detail.questionType;
+  const passed = e.detail.results.passed;
+  
+  // if got a meaning question correct, show the translation
+  if (questionType === 'meaning' && passed) {
+    hideTranslation(false);
+    translationVisible = true;
+  }
+});
+
+// if passed a subject, show the translation
+window.addEventListener(`didChangeSRS`, e => {
+  hideTranslation(false);
+  translationVisible = true;
 });
 
 var config = {
@@ -79,7 +146,24 @@ function startup_wkof()
 function install_context_sentence_css()
 {
     var better_font = "<link href=\"https://fonts.googleapis.com/css?family=Sawarabi+Mincho\" rel=\"stylesheet\">";
-    var context_sentence_css = ".wf-sawarabimincho { font-family: \"Sawarabi Mincho\"; font-size:1.5em; background-color:#a100f1; color:#ffffff}"
+    var context_sentence_css = `
+      .wf-sawarabimincho {
+        font-family: \"Sawarabi Mincho\";
+        font-size:1.5em; background-color:#a100f1;
+        color:#ffffff;
+        text-align:center;
+        padding: 10px;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        row-gap: 12px;
+        display: none;
+      }
+
+      .wf-sawarabimincho span+span {
+        cursor: pointer;
+      }
+    `
 
     $('head').append(better_font);
     $('head').append('<style>'+ context_sentence_css +'</style>');
@@ -87,13 +171,25 @@ function install_context_sentence_css()
 
 $(document).ready(function()
 {
-  parent =
-  sentenceNode = document.createElement('div');
-  // sentenceNode.setAttribute('style', 'font-family: \'Sawarabi Mincho\', serif;');
-  sentenceNode.setAttribute('class', 'wf-sawarabimincho');
-  sentenceNode.setAttribute('style', 'text-align:center')
-  sentenceNode.innerHTML = '<span>' + sentence + '</span>';
-  $(document.getElementsByClassName('quiz__content')[0].insertBefore(sentenceNode, document.getElementsByClassName('quiz-input')[0]));
+const quizInput = document.querySelector('.quiz-input');
+  if (quizInput) {
+    quizInput.insertAdjacentHTML('beforebegin', `
+      <div class="wf-sawarabimincho">
+        <span>${sentence}</span>
+        <span style="background-color: white">${translation}</span>
+      </div>
+    `);
+  }
+
+  sentenceNode = document.querySelector('.wf-sawarabimincho');
+
+  // show/hide translation on hover
+  const translationSpan = sentenceNode.querySelector('span:last-child');
+  if (translationSpan) {
+    translationSpan.addEventListener('mouseover', e => hideTranslation(translationVisible, e.target));
+    translationSpan.addEventListener('mouseout', e => hideTranslation(!translationVisible, e.target));
+  }
+
   startup_wkof();
   install_context_sentence_css();
   console.log( "ready!" );

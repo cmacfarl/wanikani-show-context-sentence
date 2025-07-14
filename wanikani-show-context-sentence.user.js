@@ -12,7 +12,7 @@
 // ==/UserScript==
 
 (function() {
-  
+
 if (!window.wkof) {
     alert('The show context sentence script requires Wanikani Open Framework.\nYou will now be forwarded to installation instructions.');
     window.location.href = 'https://community.wanikani.com/t/instructions-installing-wanikani-open-framework/28549';
@@ -22,15 +22,17 @@ if (!window.wkof) {
 var currSubject = null;
 var sentence = "";
 var translation = "";
+var showTranslationKey = "control"; // https://www.toptal.com/developers/keycode/table
+var showTranslationCode = ""; // this overrides showTranslationKey if set
+var translationVisible = false;
 var sentenceNode = null;
 var wk_items = null;
-var translationVisible = false;
 
 function hideTranslation(hide, node) {
     if (!node && sentenceNode)
       node = sentenceNode.querySelector('span + span');
 
-    if (node) node.style.backgroundColor = hide ? 'white' : '#a100f1';
+    if (node) node.style.display = hide ? 'none' : 'inline';
 }
 
 function format_sentence(sentence, characters) {
@@ -74,20 +76,20 @@ function get_new_sentence()
 
       sentence = item.data.context_sentences[random_index]?.ja || '';
       translation = item.data.context_sentences[random_index]?.en || '';
-      
+
       if (sentence)
         sentence = format_sentence(sentence, item.data.characters);
-      
+
     } else {
       sentence = ""
       translation = "";
       sentenceNode.style.display = 'none';
     }
-  
-    sentenceNode.querySelector('span').innerHTML = sentence;
-    sentenceNode.querySelector('span + span').innerHTML = translation;
 
-    hideTranslation(true, sentenceNode.querySelector('span + span'));
+    sentenceNode.querySelector('span[data-type="sentence"]').innerHTML = sentence;
+    sentenceNode.querySelector('span[data-type="translation"]').innerHTML = translation;
+
+    hideTranslation(true, sentenceNode.querySelector('span[data-type="translation"]'));
     translationVisible = false;
 }
 
@@ -100,7 +102,7 @@ window.addEventListener(`willShowNextQuestion`, e => {
 window.addEventListener(`didAnswerQuestion`, e => {
   const questionType = e.detail.questionType;
   const passed = e.detail.results.passed;
-  
+
   // if got a meaning question correct, show the translation
   if (questionType === 'meaning' && passed) {
     hideTranslation(false);
@@ -114,6 +116,18 @@ window.addEventListener(`didChangeSRS`, e => {
   translationVisible = true;
 });
 
+// show translation on keydown
+function handleKeyShowTranslation(e) {
+  const key = (showTranslationCode ? e.code : e.key)?.toLowerCase();
+  const choice = (showTranslationCode || showTranslationKey)?.toLowerCase();
+  if (key === choice)
+    hideTranslation(e.type === (!translationVisible ? 'keyup' : 'keydown'));
+}
+
+window.addEventListener('keydown', handleKeyShowTranslation);
+window.addEventListener('keyup', handleKeyShowTranslation);
+
+
 var config = {
     wk_items: {
         options: {
@@ -124,7 +138,7 @@ var config = {
 
 //
 // Note that this async operation is slower than the willShowNextQuestion above.
-// Which is why we cache the current subject as a global in the event handler.  
+// Which is why we cache the current subject as a global in the event handler.
 // Otherwise the first item, if vocabulary, will have no sentence.
 //
 function fetch_items()
@@ -132,7 +146,7 @@ function fetch_items()
     wkof.ItemData.get_items(config)
         .then((items) => { wk_items = items; })
         .then(get_new_sentence);
-    
+
     console.log("Fetched the items")
 }
 
@@ -152,7 +166,6 @@ function install_context_sentence_css()
         font-size:1.5em; background-color:#a100f1;
         color:#ffffff;
         text-align:center;
-        padding: 10px;
         flex-direction: column;
         align-items: center;
         justify-content: center;
@@ -160,8 +173,23 @@ function install_context_sentence_css()
         display: none;
       }
 
-      .wf-sawarabimincho span+span {
+      .wf-sawarabimincho span {
         cursor: pointer;
+      }
+
+      .wf-sawarabimincho span[data-type="sentence"] {
+        padding: 10px;
+      }
+
+      .wf-sawarabimincho span[data-type="sentence"]:hover {
+        background-color: rgba(254, 254, 254, 0.5);
+        border-radius: 20px;
+      }
+
+      .wf-sawarabimincho span[data-type="translation"] {
+        padding: 10px;
+        margin-top: -15px;
+        pointer-events: none;
       }
     `
 
@@ -175,8 +203,8 @@ const quizInput = document.querySelector('.quiz-input');
   if (quizInput) {
     quizInput.insertAdjacentHTML('beforebegin', `
       <div class="wf-sawarabimincho">
-        <span>${sentence}</span>
-        <span style="background-color: white">${translation}</span>
+        <span data-type="sentence">${sentence}</span>
+        <span data-type="translation">${translation}</span>
       </div>
     `);
   }
@@ -184,15 +212,17 @@ const quizInput = document.querySelector('.quiz-input');
   sentenceNode = document.querySelector('.wf-sawarabimincho');
 
   // show/hide translation on hover
-  const translationSpan = sentenceNode.querySelector('span:last-child');
+  const sentenceSpan = sentenceNode.querySelector('span[data-type="sentence"]');
+  const translationSpan = sentenceNode.querySelector('span[data-type="translation"]');
+  hideTranslation(true, translationSpan);
   if (translationSpan) {
-    translationSpan.addEventListener('mouseover', e => hideTranslation(translationVisible, e.target));
-    translationSpan.addEventListener('mouseout', e => hideTranslation(!translationVisible, e.target));
+    sentenceSpan.addEventListener('mouseover', e => hideTranslation(translationVisible, translationSpan));
+    sentenceSpan.addEventListener('mouseout', e => hideTranslation(!translationVisible, translationSpan));
   }
 
   startup_wkof();
   install_context_sentence_css();
   console.log( "ready!" );
 });
-          
+
 })();

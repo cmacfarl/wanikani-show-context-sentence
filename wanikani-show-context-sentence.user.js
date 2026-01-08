@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        WaniKani Show Context Sentence
 // @namespace   skatefriday
-// @match       https://www.wanikani.com/subjects/review
+// @match       https://www.wanikani.com/subjects/review*
 // @match       https://www.wanikani.com/subjects/extra_study*
 // @require     https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js
 // @grant       none
